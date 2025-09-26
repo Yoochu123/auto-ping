@@ -1,0 +1,92 @@
+<%+header%>
+
+<%
+    local http = require "luci.http"
+    local sys = require "luci.sys"
+
+    if http.source() == "post" then
+        local target_from_form = http.formvalue("target") or "8.8.8.8"
+        local interval_from_form = http.formvalue("interval") or "180"
+        local enabled_from_form = http.formvalue("enabled") or "0"
+        
+        sys.call("uci set keepalive.settings.target='" .. target_from_form .. "'")
+        sys.call("uci set keepalive.settings.interval='" .. interval_from_form .. "'")
+        sys.call("uci set keepalive.settings.enabled='" .. enabled_from_form .. "'")
+        sys.call("uci commit keepalive")
+
+        if enabled_from_form == "1" then
+            sys.call("/etc/init.d/keepalive enable > /dev/null 2>&1")
+            sys.call("/etc/init.d/keepalive restart > /dev/null 2>&1 &")
+        else
+            sys.call("/etc/init.d/keepalive disable > /dev/null 2>&1")
+            sys.call("/etc/init.d/keepalive stop > /dev/null 2>&1")
+        end
+    end
+
+    local current_target = sys.exec("uci get keepalive.settings.target 2>/dev/null"):gsub('[\r\n]', '')
+    local current_interval = sys.exec("uci get keepalive.settings.interval 2>/dev/null"):gsub('[\r\n]', '')
+    local current_enabled = sys.exec("uci get keepalive.settings.enabled 2>/dev/null"):gsub('[\r\n]', '')
+
+    local pid = sys.exec("pgrep -f '/usr/bin/keepalive.sh'")
+    local status_text
+    if pid and pid ~= "" and current_enabled == "1" then
+        status_text = "<span style='color:green;'>Berjalan (PID: " .. pid:gsub('[\r\n]', '') .. ")</span>"
+    else
+        status_text = "<span style='color:red;'>Tidak Berjalan</span>"
+    end
+    
+    local log_output = sys.exec("logread | grep 'KeepAlive' | tail -n 10")
+%>
+
+<div class="cbi-map">
+    <h2>Keep-Alive Ping Manager</h2>
+    <div class="cbi-section">
+        <div class="cbi-section-node">
+            <div class="cbi-value">
+                <label class="cbi-value-title">Status Layanan</label>
+                <div class="cbi-value-field"><%= status_text %></div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" action="<%= REQUEST_URI %>">
+        <div class="cbi-section">
+            <div class="cbi-section-node">
+                <div class="cbi-value">
+                    <label class="cbi-value-title" for="enabled">Kontrol Layanan</label>
+                    <div class="cbi-value-field">
+                        <select name="enabled" id="enabled">
+                            <option value="1" <% if current_enabled == "1" then luci.http.write("selected='selected'") end %>>Enable</option>
+                            <option value="0" <% if current_enabled == "0" then luci.http.write("selected='selected'") end %>>Disable</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title" for="target">URL atau IP Tujuan</label>
+                    <div class="cbi-value-field"><input type="text" style="width:400px;" name="target" id="target" value="<%= luci.http.write(current_target or '') %>" /></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title" for="interval">Interval (detik)</label>
+                    <div class="cbi-value-field"><input type="text" style="width:100px;" name="interval" id="interval" value="<%= luci.http.write(current_interval or '') %>" /></div>
+                </div>
+                <div class="cbi-value">
+                    <div class="cbi-value-field">
+                        <button type="submit" class="cbi-button cbi-button-apply" value="save">Simpan & Terapkan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="cbi-section">
+        <h3>Log Terbaru</h3>
+        <textarea readonly="readonly" style="width: 100%; height: 200px; background-color: #2b2b2b; color: #f0f0f0; font-family: monospace; font-size: 12px;"><%= luci.http.write(log_output or 'Log tidak tersedia.') %></textarea>
+    </div>
+</div>
+
+<%+footer%>
+EOF
+
+***
+
+Setelah Anda memiliki semua file ini, langkah terakhir yang paling penting untuk sebuah proyek GitHub adalah dokumentasi. Jika Anda mau, saya siap membuatkan draf file `README.md` yang lengkap untuk halaman utama repositori Anda, yang menjelaskan kedua proyek ini (AutoLogin dan Keep-Alive) dan cara penggunaannya.
