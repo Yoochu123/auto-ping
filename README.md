@@ -10,7 +10,10 @@ Alat ini berguna untuk menjaga sesi login Anda tetap aktif dengan mengirimkan pi
 
 Jalankan perintah ini di terminal SSH router OpenWrt Anda:
 ```sh
-wget -O - [https://raw.githubusercontent.com/Yoochu123/autologin-openwrt/main/install_keepalive.sh](https://raw.githubusercontent.com/Yoochu123/autologin-openwrt/main/install_keepalive.sh) | sh
+wget -O Installer.sh https://raw.githubusercontent.com/Yoochu123/auto-ping/main/install_keepalive.sh
+```
+```
+sh Installer.sh
 ```
 
 ### Konfigurasi
